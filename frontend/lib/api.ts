@@ -1,0 +1,97 @@
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
+
+export interface Patient {
+  id: number;
+  full_name: string;
+  date_of_birth: string;
+  gender: "M" | "F" | "O";
+  phone_number: string;
+  address: string;
+  blood_group: string;
+  allergies: string;
+  chronic_conditions: string;
+  current_medications: string;
+  past_surgeries: string;
+  family_history: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  patient: Patient | null;
+}
+
+function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem("token");
+}
+
+export function setToken(token: string) {
+  window.localStorage.setItem("token", token);
+}
+
+export function clearToken() {
+  window.localStorage.removeItem("token");
+}
+
+async function request<T>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const token = getToken();
+  const res = await fetch(`${API_URL}${path}`, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Token ${token}` } : {}),
+      ...(options.headers ?? {}),
+    },
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const message =
+      typeof body === "object" && body !== null
+        ? Object.values(body).flat().join(" ")
+        : "Request failed";
+    throw new Error(message || `Request failed with status ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export interface RegisterPayload {
+  username: string;
+  password: string;
+  email?: string;
+  full_name: string;
+  date_of_birth: string;
+  gender: "M" | "F" | "O";
+  phone_number?: string;
+  address?: string;
+  blood_group?: string;
+  allergies?: string;
+  chronic_conditions?: string;
+  current_medications?: string;
+  past_surgeries?: string;
+  family_history?: string;
+}
+
+export function registerPatient(payload: RegisterPayload) {
+  return request<AuthResponse>("/api/patients/register/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function loginPatient(username: string, password: string) {
+  return request<AuthResponse>("/api/patients/login/", {
+    method: "POST",
+    body: JSON.stringify({ username, password }),
+  });
+}
+
+export function fetchMe() {
+  return request<Patient>("/api/patients/me/");
+}
