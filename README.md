@@ -9,8 +9,9 @@ discharge summaries) which are digitized via OCR.
 - Node.js >= 20.9 (installed here via `brew install node@20`)
 - Python 3
 - Postgres (installed here via `brew install postgresql@16`, running as a brew service)
-- Tesseract OCR + Poppler, for document digitization (installed here via
-  `brew install tesseract poppler`)
+- Poppler, for rasterizing scanned PDFs (installed here via `brew install poppler`)
+- A `GEMINI_API_KEY` in `backend/.env` — used for document OCR (handwriting-capable, via
+  Gemini's vision API) and for parsing spoken registration transcripts ("Fill by voice")
 
 ## Backend (Django)
 
@@ -30,8 +31,10 @@ API endpoints:
 - `GET/POST /api/documents/` — list/upload the logged-in patient's medical documents (multipart form: `document_type`, `title`, `notes`, `file`)
 - `GET/DELETE /api/documents/<id>/` — view or delete one of the logged-in patient's documents
 
-Uploaded files are OCR'd synchronously on upload (Tesseract for images, embedded text or
-rasterized OCR fallback for PDFs) and the extracted text is stored on the document record.
+Uploaded files are digitized synchronously on upload: PDFs try their embedded text layer
+first, and images (plus scanned PDFs with no text layer) are transcribed via the Gemini
+vision API, which handles handwritten prescriptions far better than traditional OCR. The
+extracted text is stored on the document record.
 
 DB connection settings are read from `backend/.env` (Postgres db/user/password `medikiosk` by default).
 
