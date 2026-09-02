@@ -79,6 +79,27 @@ export interface RegisterPayload {
   family_history?: string;
 }
 
+export interface VoiceParsedFields {
+  full_name: string;
+  date_of_birth: string;
+  gender: "M" | "F" | "O" | "";
+  phone_number: string;
+  address: string;
+  blood_group: string;
+  allergies: string;
+  chronic_conditions: string;
+  current_medications: string;
+  past_surgeries: string;
+  family_history: string;
+}
+
+export function parseVoiceTranscript(transcript: string) {
+  return request<VoiceParsedFields>("/api/patients/parse-voice/", {
+    method: "POST",
+    body: JSON.stringify({ transcript }),
+  });
+}
+
 export function registerPatient(payload: RegisterPayload) {
   return request<AuthResponse>("/api/patients/register/", {
     method: "POST",

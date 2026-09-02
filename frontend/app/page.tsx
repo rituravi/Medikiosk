@@ -1,4 +1,5 @@
 import Link from "next/link";
+import AiDisclaimer from "@/components/AiDisclaimer";
 
 export default function Home() {
   return (
@@ -54,6 +55,8 @@ export default function Home() {
           description="A date-sorted, printable summary of your full medical history for any visit."
         />
       </section>
+
+      <AiDisclaimer />
     </div>
   );
 }

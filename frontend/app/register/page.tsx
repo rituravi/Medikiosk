@@ -3,7 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
-import { registerPatient, setToken } from "@/lib/api";
+import VoiceFill from "@/components/VoiceFill";
+import { registerPatient, setToken, type VoiceParsedFields } from "@/lib/api";
 
 const initialForm = {
   username: "",
@@ -33,6 +34,23 @@ export default function RegisterPage() {
     value: (typeof initialForm)[K],
   ) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  function handleVoiceParsed(fields: VoiceParsedFields) {
+    setForm((prev) => ({
+      ...prev,
+      full_name: fields.full_name || prev.full_name,
+      date_of_birth: fields.date_of_birth || prev.date_of_birth,
+      gender: (fields.gender || prev.gender) as "M" | "F" | "O",
+      phone_number: fields.phone_number || prev.phone_number,
+      address: fields.address || prev.address,
+      blood_group: fields.blood_group || prev.blood_group,
+      allergies: fields.allergies || prev.allergies,
+      chronic_conditions: fields.chronic_conditions || prev.chronic_conditions,
+      current_medications: fields.current_medications || prev.current_medications,
+      past_surgeries: fields.past_surgeries || prev.past_surgeries,
+      family_history: fields.family_history || prev.family_history,
+    }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -68,6 +86,10 @@ export default function RegisterPage() {
           Log in
         </Link>
       </p>
+
+      <div className="mt-6">
+        <VoiceFill onParsed={handleVoiceParsed} />
+      </div>
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-6">
         <fieldset className="flex flex-col gap-4">

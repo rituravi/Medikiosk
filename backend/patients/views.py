@@ -9,6 +9,7 @@ from documents.serializers import MedicalDocumentSerializer
 
 from .models import Patient
 from .serializers import LoginSerializer, PatientSerializer, RegisterSerializer
+from .voice import VoiceParseError, parse_transcript
 
 
 class RegisterView(APIView):
@@ -56,6 +57,28 @@ class MeView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         return Response(PatientSerializer(patient).data)
+
+
+class ParseVoiceView(APIView):
+    """Parse a spoken registration transcript into structured form fields."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        transcript = request.data.get("transcript", "").strip()
+        if not transcript:
+            return Response(
+                {"detail": "transcript is required."}, status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            fields = parse_transcript(transcript)
+        except VoiceParseError as exc:
+            return Response(
+                {"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY
+            )
+
+        return Response(fields)
 
 
 class SummaryView(APIView):
