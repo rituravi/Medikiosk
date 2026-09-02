@@ -51,20 +51,29 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-6 py-12">
-      <div>
-        <h1 className="text-3xl font-semibold">Patient Registration</h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          Already have an account?{" "}
-          <Link href="/login" className="underline">
-            Log in
-          </Link>
-        </p>
+    <div
+      className="flex min-h-screen items-center justify-center px-6 py-12"
+      style={{ background: "var(--sidebar-bg)" }}
+    >
+    <div className="card w-full max-w-2xl p-8">
+      <div className="mb-6 flex items-center gap-2">
+        <CrossIcon />
+        <span className="text-lg font-semibold">Medikiosk</span>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+      <h1 className="text-xl font-semibold">Patient Registration</h1>
+      <p className="mt-1 text-sm text-[var(--muted)]">
+        Already have an account?{" "}
+        <Link href="/login" className="underline" style={{ color: "var(--primary)" }}>
+          Log in
+        </Link>
+      </p>
+
+      <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-6">
         <fieldset className="flex flex-col gap-4">
-          <legend className="mb-2 text-lg font-medium">Account</legend>
+          <legend className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
+            Account
+          </legend>
           <Field label="Username">
             <input
               required
@@ -94,7 +103,9 @@ export default function RegisterPage() {
         </fieldset>
 
         <fieldset className="flex flex-col gap-4">
-          <legend className="mb-2 text-lg font-medium">Personal Details</legend>
+          <legend className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
+            Personal Details
+          </legend>
           <Field label="Full name">
             <input
               required
@@ -143,7 +154,9 @@ export default function RegisterPage() {
         </fieldset>
 
         <fieldset className="flex flex-col gap-4">
-          <legend className="mb-2 text-lg font-medium">Clinical History</legend>
+          <legend className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
+            Clinical History
+          </legend>
           <Field label="Blood group">
             <select
               className="input"
@@ -201,16 +214,13 @@ export default function RegisterPage() {
           </Field>
         </fieldset>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-full bg-foreground px-5 py-3 text-background disabled:opacity-50"
-        >
+        <button type="submit" disabled={submitting} className="btn-primary">
           {submitting ? "Registering..." : "Register"}
         </button>
       </form>
+    </div>
     </div>
   );
 }
@@ -227,5 +237,14 @@ function Field({
       <span className="font-medium">{label}</span>
       {children}
     </label>
+  );
+}
+
+function CrossIcon() {
+  return (
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+      <rect x="2" y="2" width="20" height="20" rx="6" fill="var(--primary)" />
+      <path d="M12 6v12M6 12h12" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+    </svg>
   );
 }

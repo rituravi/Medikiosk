@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
+import AppShell from "@/components/AppShell";
 import { fetchSummary, type PatientSummary } from "@/lib/api";
 
 const DOCUMENT_TYPE_LABELS: Record<string, string> = {
@@ -34,11 +34,13 @@ export default function SummaryPage() {
   const { patient, timeline } = data;
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 px-6 py-12 print:px-0 print:py-4">
+    <AppShell patientName={patient.full_name}>
+    <div className="mx-auto flex max-w-3xl flex-col gap-6 px-8 py-8 print:px-0 print:py-4">
       <div className="flex items-center justify-between print:hidden">
-        <Link href="/dashboard" className="text-sm underline">
-          Back to dashboard
-        </Link>
+        <div>
+          <p className="text-sm text-[var(--muted)]">Records</p>
+          <h1 className="text-2xl font-semibold">Summary for Doctor</h1>
+        </div>
         <div className="flex items-center gap-4 text-sm">
           <label className="flex items-center gap-2">
             <span>Order</span>
@@ -51,23 +53,20 @@ export default function SummaryPage() {
               <option value="asc">Oldest first</option>
             </select>
           </label>
-          <button
-            onClick={() => window.print()}
-            className="rounded-full bg-foreground px-4 py-2 text-background"
-          >
+          <button onClick={() => window.print()} className="btn-primary">
             Print / Save PDF
           </button>
         </div>
       </div>
 
-      <header className="border-b border-black/[.1] pb-4 dark:border-white/[.15]">
-        <h1 className="text-2xl font-semibold">Medical History Summary</h1>
-        <p className="text-sm text-zinc-500">
+      <header className="card p-4">
+        <h2 className="text-lg font-semibold">Medical History Summary</h2>
+        <p className="text-sm text-[var(--muted)]">
           Generated on {new Date().toLocaleString()}
         </p>
       </header>
 
-      <section className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
+      <section className="card grid grid-cols-2 gap-x-8 gap-y-1 p-4 text-sm">
         <SummaryField label="Name" value={patient.full_name} />
         <SummaryField label="Date of birth" value={patient.date_of_birth} />
         <SummaryField label="Gender" value={patient.gender} />
@@ -76,7 +75,7 @@ export default function SummaryPage() {
         <SummaryField label="Address" value={patient.address || "—"} />
       </section>
 
-      <section className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
+      <section className="card grid grid-cols-2 gap-x-8 gap-y-1 p-4 text-sm">
         <SummaryField label="Allergies" value={patient.allergies || "None reported"} />
         <SummaryField
           label="Chronic conditions"
@@ -96,15 +95,15 @@ export default function SummaryPage() {
         />
       </section>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-lg font-medium">Timeline</h2>
+      <section className="card flex flex-col gap-4 p-4">
+        <h2 className="text-sm font-semibold">Timeline</h2>
         {timeline.length === 0 ? (
-          <p className="text-sm text-zinc-500">No history recorded yet.</p>
+          <p className="text-sm text-[var(--muted)]">No history recorded yet.</p>
         ) : (
-          <ol className="flex flex-col gap-4 border-l border-black/[.1] pl-4 dark:border-white/[.15]">
+          <ol className="flex flex-col gap-4 border-l pl-4" style={{ borderColor: "var(--border)" }}>
             {timeline.map((entry, i) => (
               <li key={i} className="text-sm">
-                <p className="text-xs font-medium text-zinc-500">
+                <p className="text-xs font-medium text-[var(--muted)]">
                   {new Date(entry.date).toLocaleString()}
                 </p>
                 {entry.kind === "REGISTRATION" ? (
@@ -118,10 +117,10 @@ export default function SummaryPage() {
                       : {entry.title}
                     </p>
                     {entry.notes && (
-                      <p className="text-zinc-500">{entry.notes}</p>
+                      <p className="text-[var(--muted)]">{entry.notes}</p>
                     )}
                     {entry.extracted_text && (
-                      <pre className="mt-1 whitespace-pre-wrap rounded bg-black/[.04] p-2 text-xs dark:bg-white/[.06]">
+                      <pre className="mt-1 whitespace-pre-wrap rounded p-2 text-xs" style={{ background: "var(--background)" }}>
                         {entry.extracted_text}
                       </pre>
                     )}
@@ -143,13 +142,14 @@ export default function SummaryPage() {
         )}
       </section>
     </div>
+    </AppShell>
   );
 }
 
 function SummaryField({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between gap-4 border-b border-dotted border-black/[.1] py-1 dark:border-white/[.15]">
-      <span className="text-zinc-500">{label}</span>
+    <div className="flex justify-between gap-4 border-b border-dotted py-1" style={{ borderColor: "var(--border)" }}>
+      <span className="text-[var(--muted)]">{label}</span>
       <span className="text-right">{value}</span>
     </div>
   );

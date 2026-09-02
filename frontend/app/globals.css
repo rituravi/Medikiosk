@@ -1,8 +1,18 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f4f6f8;
+  --foreground: #0f172a;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --muted: #64748b;
+  --primary: #0d7d73;
+  --primary-dark: #0a5f58;
+  --primary-foreground: #ffffff;
+  --sidebar-bg: #0b2540;
+  --sidebar-foreground: #cbd5e1;
+  --sidebar-active: #0d7d73;
+  --danger: #dc2626;
 }
 
 @theme inline {
@@ -14,8 +24,17 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #0b1220;
+    --foreground: #e2e8f0;
+    --surface: #111a2c;
+    --border: #1e293b;
+    --muted: #94a3b8;
+    --primary: #14a596;
+    --primary-dark: #0d7d73;
+    --primary-foreground: #04211d;
+    --sidebar-bg: #060f1d;
+    --sidebar-foreground: #94a3b8;
+    --sidebar-active: #14a596;
   }
 }
 
@@ -27,14 +46,61 @@ body {
 
 .input {
   border-radius: 0.5rem;
-  border: 1px solid rgba(128, 128, 128, 0.4);
-  background: transparent;
+  border: 1px solid var(--border);
+  background: var(--surface);
   padding: 0.5rem 0.75rem;
   font-size: 0.9rem;
   color: inherit;
 }
 
 .input:focus {
-  outline: 2px solid var(--foreground);
+  outline: 2px solid var(--primary);
   outline-offset: 1px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: var(--primary-foreground);
+  border-radius: 9999px;
+  padding: 0.6rem 1.25rem;
+  font-weight: 600;
+  transition: background-color 0.15s ease;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+
+.btn-primary:disabled {
+  opacity: 0.5;
+}
+
+.btn-secondary {
+  border: 1px solid var(--border);
+  color: var(--foreground);
+  border-radius: 9999px;
+  padding: 0.6rem 1.25rem;
+  font-weight: 600;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border-radius: 9999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+@media print {
+  .print\:hidden {
+    display: none !important;
+  }
 }
