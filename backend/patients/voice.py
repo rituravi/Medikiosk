@@ -45,9 +45,12 @@ RESPONSE_SCHEMA = {
 }
 
 PROMPT_TEMPLATE = """You are filling out a patient registration form from a spoken \
-transcript. Extract only what is explicitly said; leave a field as an empty string \
-(or "UNKNOWN" for blood_group) if it isn't mentioned. Do not guess or invent values. \
-Convert any spoken date of birth into YYYY-MM-DD format. Map gender to "M", "F", or "O".
+transcript. The transcript may be in English, Hindi, or a mix of both (Hinglish). \
+Extract only what is explicitly said; leave a field as an empty string (or "UNKNOWN" \
+for blood_group) if it isn't mentioned. Do not guess or invent values. Convert any \
+spoken date of birth into YYYY-MM-DD format. Map gender to "M", "F", or "O". \
+Translate all extracted values into English for the output fields, regardless of the \
+language of the transcript.
 
 Transcript:
 \"\"\"{transcript}\"\"\"
@@ -73,15 +76,20 @@ def parse_transcript(transcript: str) -> dict:
         },
     }
 
-    try:
-        response = requests.post(
-            GEMINI_URL,
-            params={"key": api_key},
-            json=payload,
-            timeout=45,
-        )
-    except requests.RequestException as exc:
-        raise VoiceParseError(f"Could not reach Gemini API: {exc}") from exc
+    last_error: Exception | None = None
+    for attempt in range(2):
+        try:
+            response = requests.post(
+                GEMINI_URL,
+                params={"key": api_key},
+                json=payload,
+                timeout=45,
+            )
+            break
+        except requests.RequestException as exc:
+            last_error = exc
+    else:
+        raise VoiceParseError(f"Could not reach Gemini API: {last_error}") from last_error
 
     if not response.ok:
         raise VoiceParseError(f"Gemini API error ({response.status_code}): {response.text}")

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { parseVoiceTranscript, type VoiceParsedFields } from "@/lib/api";
 
 interface SpeechRecognitionResultLike {
@@ -26,6 +26,11 @@ interface SpeechRecognitionLike {
 
 type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
 
+const LANGUAGES = [
+  { code: "en-US", label: "English" },
+  { code: "hi-IN", label: "हिन्दी (Hindi)" },
+];
+
 function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | null {
   if (typeof window === "undefined") return null;
   const w = window as unknown as {
@@ -40,12 +45,17 @@ export default function VoiceFill({
 }: {
   onParsed: (fields: VoiceParsedFields) => void;
 }) {
-  const [supported] = useState(() => getSpeechRecognitionConstructor() !== null);
+  const [supported, setSupported] = useState(false);
   const [listening, setListening] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [language, setLanguage] = useState("en-US");
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+
+  useEffect(() => {
+    setSupported(getSpeechRecognitionConstructor() !== null);
+  }, []);
 
   function startListening() {
     const Ctor = getSpeechRecognitionConstructor();
@@ -55,7 +65,7 @@ export default function VoiceFill({
     const recognition = new Ctor();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US";
+    recognition.lang = language;
 
     recognition.onresult = (event) => {
       let finalText = "";
@@ -104,27 +114,44 @@ export default function VoiceFill({
 
   return (
     <div className="card flex flex-col gap-3 p-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold">Fill by voice</h2>
-        {supported ? (
-          <button
-            type="button"
-            onClick={listening ? stopListening : startListening}
-            className={listening ? "btn-secondary" : "btn-primary"}
-          >
-            {listening ? "Stop recording" : "Start speaking"}
-          </button>
-        ) : (
-          <span className="text-xs text-[var(--muted)]">
-            Voice input isn&apos;t supported in this browser.
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {supported && (
+            <select
+              className="input"
+              value={language}
+              onChange={(e) => setLanguage(e.target.value)}
+              disabled={listening}
+            >
+              {LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>
+                  {l.label}
+                </option>
+              ))}
+            </select>
+          )}
+          {supported ? (
+            <button
+              type="button"
+              onClick={listening ? stopListening : startListening}
+              className={listening ? "btn-secondary" : "btn-primary"}
+            >
+              {listening ? "Stop recording" : "Start speaking"}
+            </button>
+          ) : (
+            <span className="text-xs text-[var(--muted)]">
+              Voice input isn&apos;t supported in this browser.
+            </span>
+          )}
+        </div>
       </div>
 
       <p className="text-xs text-[var(--muted)]">
-        Speak naturally, e.g. &ldquo;My name is Sarah Johnson, born March 3rd 1988,
-        allergic to peanuts, I have asthma...&rdquo; then review and fill the form below.
-        You can also edit the transcript directly before filling.
+        Choose your language above, then speak naturally — e.g. &ldquo;My name is
+        Sarah Johnson, born March 3rd 1988, allergic to peanuts...&rdquo; or
+        &ldquo;मेरा नाम राज है, जन्म 15 जनवरी 1980, मुझे शुगर की बीमारी है...&rdquo; — then
+        review and fill the form below. You can also type or edit the transcript directly.
       </p>
 
       <textarea
