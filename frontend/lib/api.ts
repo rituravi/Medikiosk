@@ -153,3 +153,23 @@ export async function uploadDocument(params: {
 export function deleteDocument(id: number) {
   return request<void>(`/api/documents/${id}/`, { method: "DELETE" });
 }
+
+export interface TimelineEntry {
+  date: string;
+  kind: "REGISTRATION" | "DOCUMENT";
+  title: string;
+  document_type: DocumentType | null;
+  file_url: string | null;
+  extracted_text: string | null;
+  notes: string | null;
+  ocr_status: MedicalDocument["ocr_status"] | null;
+}
+
+export interface PatientSummary {
+  patient: Patient;
+  timeline: TimelineEntry[];
+}
+
+export function fetchSummary(order: "asc" | "desc" = "desc") {
+  return request<PatientSummary>(`/api/patients/summary/?order=${order}`);
+}

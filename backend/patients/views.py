@@ -4,6 +4,9 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from documents.models import MedicalDocument
+from documents.serializers import MedicalDocumentSerializer
+
 from .models import Patient
 from .serializers import LoginSerializer, PatientSerializer, RegisterSerializer
 
@@ -53,3 +56,57 @@ class MeView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         return Response(PatientSerializer(patient).data)
+
+
+class SummaryView(APIView):
+    """Consolidated, date-sorted medical history for a doctor visit."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        patient = getattr(request.user, "patient", None)
+        if patient is None:
+            return Response(
+                {"detail": "No patient profile for this user."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        descending = request.query_params.get("order", "desc") != "asc"
+
+        timeline = [
+            {
+                "date": patient.created_at.isoformat(),
+                "kind": "REGISTRATION",
+                "title": "Clinical history recorded at registration",
+                "document_type": None,
+                "file_url": None,
+                "extracted_text": None,
+                "notes": None,
+                "ocr_status": None,
+            }
+        ]
+
+        documents = MedicalDocument.objects.filter(patient=patient)
+        for doc in documents:
+            serialized = MedicalDocumentSerializer(doc, context={"request": request}).data
+            timeline.append(
+                {
+                    "date": doc.uploaded_at.isoformat(),
+                    "kind": "DOCUMENT",
+                    "title": doc.title,
+                    "document_type": doc.document_type,
+                    "file_url": serialized["file_url"],
+                    "extracted_text": doc.extracted_text,
+                    "notes": doc.notes,
+                    "ocr_status": doc.ocr_status,
+                }
+            )
+
+        timeline.sort(key=lambda entry: entry["date"], reverse=descending)
+
+        return Response(
+            {
+                "patient": PatientSerializer(patient).data,
+                "timeline": timeline,
+            }
+        )

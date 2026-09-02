@@ -51,6 +51,9 @@ export default function DashboardPage() {
           <Link href="/documents" className="underline">
             My documents
           </Link>
+          <Link href="/summary" className="underline">
+            Summary for doctor
+          </Link>
           <button onClick={handleLogout} className="underline">
             Log out
           </button>
