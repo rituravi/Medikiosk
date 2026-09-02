@@ -1,12 +1,16 @@
 # Medikiosk
 
-Next.js frontend + Django backend + Postgres, wired so the homepage fetches "Hello, World!" from the API.
+Next.js frontend + Django backend + Postgres. Patients can register (capturing clinical
+history), log in, and upload physical medical documents (prescriptions, lab reports,
+discharge summaries) which are digitized via OCR.
 
 ## Prerequisites
 
 - Node.js >= 20.9 (installed here via `brew install node@20`)
 - Python 3
 - Postgres (installed here via `brew install postgresql@16`, running as a brew service)
+- Tesseract OCR + Poppler, for document digitization (installed here via
+  `brew install tesseract poppler`)
 
 ## Backend (Django)
 
@@ -17,7 +21,17 @@ python manage.py migrate
 python manage.py runserver 8000
 ```
 
-API: `GET http://localhost:8000/api/hello/` -> `{"message": "Hello, World!"}`
+API endpoints:
+
+- `GET /api/hello/` -> `{"message": "Hello, World!"}`
+- `POST /api/patients/register/` — create a patient account + clinical history, returns an auth token
+- `POST /api/patients/login/` — returns an auth token
+- `GET /api/patients/me/` — the logged-in patient's profile (requires `Authorization: Token <token>`)
+- `GET/POST /api/documents/` — list/upload the logged-in patient's medical documents (multipart form: `document_type`, `title`, `notes`, `file`)
+- `GET/DELETE /api/documents/<id>/` — view or delete one of the logged-in patient's documents
+
+Uploaded files are OCR'd synchronously on upload (Tesseract for images, embedded text or
+rasterized OCR fallback for PDFs) and the extracted text is stored on the document record.
 
 DB connection settings are read from `backend/.env` (Postgres db/user/password `medikiosk` by default).
 

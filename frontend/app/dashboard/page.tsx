@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { clearToken, fetchMe, type Patient } from "@/lib/api";
@@ -46,9 +47,14 @@ export default function DashboardPage() {
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col gap-8 px-6 py-12">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-semibold">Welcome, {patient.full_name}</h1>
-        <button onClick={handleLogout} className="text-sm underline">
-          Log out
-        </button>
+        <div className="flex items-center gap-4 text-sm">
+          <Link href="/documents" className="underline">
+            My documents
+          </Link>
+          <button onClick={handleLogout} className="underline">
+            Log out
+          </button>
+        </div>
       </div>
 
       <Section title="Personal Details">

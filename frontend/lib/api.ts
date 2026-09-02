@@ -58,6 +58,7 @@ async function request<T>(
     throw new Error(message || `Request failed with status ${res.status}`);
   }
 
+  if (res.status === 204) return undefined as T;
   return res.json();
 }
 
@@ -94,4 +95,61 @@ export function loginPatient(username: string, password: string) {
 
 export function fetchMe() {
   return request<Patient>("/api/patients/me/");
+}
+
+export type DocumentType =
+  | "PRESCRIPTION"
+  | "LAB_REPORT"
+  | "DISCHARGE_SUMMARY"
+  | "OTHER";
+
+export interface MedicalDocument {
+  id: number;
+  document_type: DocumentType;
+  title: string;
+  file_url: string;
+  notes: string;
+  extracted_text: string;
+  ocr_status: "PENDING" | "PROCESSING" | "DONE" | "FAILED";
+  ocr_error: string;
+  uploaded_at: string;
+}
+
+export function fetchDocuments() {
+  return request<MedicalDocument[]>("/api/documents/");
+}
+
+export async function uploadDocument(params: {
+  document_type: DocumentType;
+  title: string;
+  notes?: string;
+  file: File;
+}): Promise<MedicalDocument> {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append("document_type", params.document_type);
+  formData.append("title", params.title);
+  if (params.notes) formData.append("notes", params.notes);
+  formData.append("file", params.file);
+
+  const res = await fetch(`${API_URL}/api/documents/`, {
+    method: "POST",
+    headers: token ? { Authorization: `Token ${token}` } : undefined,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const message =
+      typeof body === "object" && body !== null
+        ? Object.values(body).flat().join(" ")
+        : "Upload failed";
+    throw new Error(message || `Upload failed with status ${res.status}`);
+  }
+
+  return res.json();
+}
+
+export function deleteDocument(id: number) {
+  return request<void>(`/api/documents/${id}/`, { method: "DELETE" });
 }
