@@ -75,6 +75,25 @@ class RegisterSerializer(serializers.Serializer):
         return patient
 
 
+class AdminPatientSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username", read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    is_active = serializers.BooleanField(source="user.is_active", read_only=True)
+
+    class Meta:
+        model = Patient
+        fields = [
+            "id",
+            "username",
+            "email",
+            "is_active",
+            "full_name",
+            "phone_number",
+            "date_of_birth",
+            "created_at",
+        ]
+
+
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField(write_only=True)

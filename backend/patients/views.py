@@ -1,6 +1,9 @@
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.shortcuts import get_object_or_404
 from rest_framework import status
 from rest_framework.authtoken.models import Token
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -8,7 +11,12 @@ from documents.models import MedicalDocument
 from documents.serializers import MedicalDocumentSerializer
 
 from .models import Patient
-from .serializers import LoginSerializer, PatientSerializer, RegisterSerializer
+from .serializers import (
+    AdminPatientSerializer,
+    LoginSerializer,
+    PatientSerializer,
+    RegisterSerializer,
+)
 from .transcribe import TranscribeError, transcribe_audio
 from .voice import VoiceParseError, parse_transcript
 
@@ -37,12 +45,23 @@ class LoginView(APIView):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data["user"]
-        token, _ = Token.objects.get_or_create(user=user)
+
+        if user.is_staff:
+            token, _ = Token.objects.get_or_create(user=user)
+            return Response({"token": token.key, "role": "admin", "patient": None})
+
         patient = getattr(user, "patient", None)
+        if patient is None:
+            return Response(
+                {"detail": "This account has no patient profile."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        token, _ = Token.objects.get_or_create(user=user)
         return Response(
             {
                 "token": token.key,
-                "patient": PatientSerializer(patient).data if patient else None,
+                "role": "patient",
+                "patient": PatientSerializer(patient).data,
             }
         )
 
@@ -103,6 +122,50 @@ class TranscribeVoiceView(APIView):
             )
 
         return Response({"transcript": transcript})
+
+
+class AdminUserListView(APIView):
+    """List all patient accounts for admin management."""
+
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        patients = Patient.objects.select_related("user").order_by("-created_at")
+        return Response(AdminPatientSerializer(patients, many=True).data)
+
+
+class AdminResetPasswordView(APIView):
+    """Reset a patient's password on their behalf."""
+
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, patient_id):
+        patient = get_object_or_404(Patient, pk=patient_id)
+        new_password = request.data.get("new_password", "")
+
+        try:
+            validate_password(new_password, user=patient.user)
+        except DjangoValidationError as exc:
+            return Response({"detail": list(exc.messages)}, status=status.HTTP_400_BAD_REQUEST)
+
+        patient.user.set_password(new_password)
+        patient.user.save()
+        Token.objects.filter(user=patient.user).delete()
+        return Response({"detail": "Password reset."})
+
+
+class AdminToggleActiveView(APIView):
+    """Activate or deactivate a patient's account."""
+
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, patient_id):
+        patient = get_object_or_404(Patient, pk=patient_id)
+        patient.user.is_active = not patient.user.is_active
+        patient.user.save()
+        if not patient.user.is_active:
+            Token.objects.filter(user=patient.user).delete()
+        return Response({"is_active": patient.user.is_active})
 
 
 class SummaryView(APIView):

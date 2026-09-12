@@ -17,8 +17,11 @@ export interface Patient {
   updated_at: string;
 }
 
+export type Role = "admin" | "patient";
+
 export interface AuthResponse {
   token: string;
+  role: Role;
   patient: Patient | null;
 }
 
@@ -31,8 +34,18 @@ export function setToken(token: string) {
   window.localStorage.setItem("token", token);
 }
 
+export function getRole(): Role | null {
+  if (typeof window === "undefined") return null;
+  return window.localStorage.getItem("role") as Role | null;
+}
+
+export function setRole(role: Role) {
+  window.localStorage.setItem("role", role);
+}
+
 export function clearToken() {
   window.localStorage.removeItem("token");
+  window.localStorage.removeItem("role");
 }
 
 async function request<T>(
@@ -218,4 +231,33 @@ export interface PatientSummary {
 
 export function fetchSummary(order: "asc" | "desc" = "desc") {
   return request<PatientSummary>(`/api/patients/summary/?order=${order}`);
+}
+
+export interface AdminPatient {
+  id: number;
+  username: string;
+  email: string;
+  is_active: boolean;
+  full_name: string;
+  phone_number: string;
+  date_of_birth: string;
+  created_at: string;
+}
+
+export function adminFetchUsers() {
+  return request<AdminPatient[]>("/api/patients/admin/users/");
+}
+
+export function adminResetPassword(patientId: number, newPassword: string) {
+  return request<{ detail: string }>(
+    `/api/patients/admin/users/${patientId}/reset-password/`,
+    { method: "POST", body: JSON.stringify({ new_password: newPassword }) },
+  );
+}
+
+export function adminToggleActive(patientId: number) {
+  return request<{ is_active: boolean }>(
+    `/api/patients/admin/users/${patientId}/toggle-active/`,
+    { method: "POST" },
+  );
 }

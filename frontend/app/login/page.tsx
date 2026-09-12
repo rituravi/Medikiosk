@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Link from "next/link";
-import { loginPatient, setToken } from "@/lib/api";
+import { loginPatient, setRole, setToken } from "@/lib/api";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,7 +19,8 @@ export default function LoginPage() {
     try {
       const res = await loginPatient(username, password);
       setToken(res.token);
-      router.push("/dashboard");
+      setRole(res.role);
+      router.push(res.role === "admin" ? "/admin" : "/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {
