@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
+import PatientOtpCard from "@/components/PatientOtpCard";
 import { fetchDocuments, fetchMe, type MedicalDocument, type Patient } from "@/lib/api";
 
 export default function DashboardPage() {
@@ -12,6 +13,12 @@ export default function DashboardPage() {
   const [documents, setDocuments] = useState<MedicalDocument[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+
+  function loadPatient() {
+    fetchMe()
+      .then(setPatient)
+      .catch(() => {});
+  }
 
   useEffect(() => {
     Promise.all([fetchMe(), fetchDocuments().catch(() => [])])
@@ -90,6 +97,8 @@ export default function DashboardPage() {
             </Link>
           </div>
         </Card>
+
+        <PatientOtpCard otpIsSet={patient.otp_is_set} onUpdated={loadPatient} />
       </div>
     </AppShell>
   );

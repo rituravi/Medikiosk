@@ -40,5 +40,23 @@ class Patient(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Hashed access code the patient sets themselves; a doctor must supply it
+    # (in plaintext, checked against this hash) to view this patient's summary.
+    access_otp = models.CharField(max_length=128, blank=True)
+
+    def __str__(self):
+        return self.full_name
+
+
+class Doctor(models.Model):
+    user = models.OneToOneField(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="doctor"
+    )
+
+    full_name = models.CharField(max_length=255)
+    specialization = models.CharField(max_length=255, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
     def __str__(self):
         return self.full_name

@@ -2,10 +2,12 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
 from rest_framework import serializers
 
-from .models import Patient
+from .models import Doctor, Patient
 
 
 class PatientSerializer(serializers.ModelSerializer):
+    otp_is_set = serializers.SerializerMethodField()
+
     class Meta:
         model = Patient
         fields = [
@@ -23,8 +25,12 @@ class PatientSerializer(serializers.ModelSerializer):
             "family_history",
             "created_at",
             "updated_at",
+            "otp_is_set",
         ]
-        read_only_fields = ["id", "created_at", "updated_at"]
+        read_only_fields = ["id", "created_at", "updated_at", "otp_is_set"]
+
+    def get_otp_is_set(self, obj):
+        return bool(obj.access_otp)
 
 
 class RegisterSerializer(serializers.Serializer):
@@ -92,6 +98,45 @@ class AdminPatientSerializer(serializers.ModelSerializer):
             "date_of_birth",
             "created_at",
         ]
+
+
+class DoctorSerializer(serializers.ModelSerializer):
+    username = serializers.CharField(source="user.username", read_only=True)
+
+    class Meta:
+        model = Doctor
+        fields = ["id", "username", "full_name", "specialization", "created_at"]
+
+
+class CreateDoctorSerializer(serializers.Serializer):
+    username = serializers.CharField()
+    password = serializers.CharField(write_only=True, min_length=8)
+    full_name = serializers.CharField()
+    specialization = serializers.CharField(required=False, allow_blank=True)
+
+    def validate_username(self, value):
+        if User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("Username is already taken.")
+        return value
+
+    def create(self, validated_data):
+        user = User.objects.create_user(
+            username=validated_data["username"],
+            password=validated_data["password"],
+        )
+        return Doctor.objects.create(
+            user=user,
+            full_name=validated_data["full_name"],
+            specialization=validated_data.get("specialization", ""),
+        )
+
+
+class DoctorPatientSerializer(serializers.ModelSerializer):
+    """Minimal patient info a doctor needs to pick the right patient."""
+
+    class Meta:
+        model = Patient
+        fields = ["id", "full_name", "date_of_birth", "gender", "phone_number"]
 
 
 class LoginSerializer(serializers.Serializer):

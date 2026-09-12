@@ -15,9 +15,10 @@ export interface Patient {
   family_history: string;
   created_at: string;
   updated_at: string;
+  otp_is_set: boolean;
 }
 
-export type Role = "admin" | "patient";
+export type Role = "admin" | "doctor" | "patient";
 
 export interface AuthResponse {
   token: string;
@@ -156,6 +157,13 @@ export function fetchMe() {
   return request<Patient>("/api/patients/me/");
 }
 
+export function setPatientOtp(otp: string) {
+  return request<{ detail: string }>("/api/patients/me/otp/", {
+    method: "POST",
+    body: JSON.stringify({ otp }),
+  });
+}
+
 export type DocumentType =
   | "PRESCRIPTION"
   | "LAB_REPORT"
@@ -260,4 +268,47 @@ export function adminToggleActive(patientId: number) {
     `/api/patients/admin/users/${patientId}/toggle-active/`,
     { method: "POST" },
   );
+}
+
+export interface Doctor {
+  id: number;
+  username: string;
+  full_name: string;
+  specialization: string;
+  created_at: string;
+}
+
+export function adminFetchDoctors() {
+  return request<Doctor[]>("/api/patients/admin/doctors/");
+}
+
+export function adminCreateDoctor(payload: {
+  username: string;
+  password: string;
+  full_name: string;
+  specialization?: string;
+}) {
+  return request<Doctor>("/api/patients/admin/doctors/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export interface DoctorPatient {
+  id: number;
+  full_name: string;
+  date_of_birth: string;
+  gender: "M" | "F" | "O";
+  phone_number: string;
+}
+
+export function doctorFetchPatients() {
+  return request<DoctorPatient[]>("/api/patients/doctor/patients/");
+}
+
+export function doctorFetchPatientSummary(patientId: number, otp: string) {
+  return request<PatientSummary>(`/api/patients/doctor/patients/${patientId}/summary/`, {
+    method: "POST",
+    body: JSON.stringify({ otp }),
+  });
 }

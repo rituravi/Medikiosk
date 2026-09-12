@@ -6,6 +6,7 @@ urlpatterns = [
     path("register/", views.RegisterView.as_view(), name="patient-register"),
     path("login/", views.LoginView.as_view(), name="patient-login"),
     path("me/", views.MeView.as_view(), name="patient-me"),
+    path("me/otp/", views.SetOtpView.as_view(), name="patient-set-otp"),
     path("summary/", views.SummaryView.as_view(), name="patient-summary"),
     path("parse-voice/", views.ParseVoiceView.as_view(), name="patient-parse-voice"),
     path("transcribe-voice/", views.TranscribeVoiceView.as_view(), name="patient-transcribe-voice"),
@@ -19,5 +20,12 @@ urlpatterns = [
         "admin/users/<int:patient_id>/toggle-active/",
         views.AdminToggleActiveView.as_view(),
         name="admin-toggle-active",
+    ),
+    path("admin/doctors/", views.AdminCreateDoctorView.as_view(), name="admin-doctor-list-create"),
+    path("doctor/patients/", views.DoctorPatientListView.as_view(), name="doctor-patient-list"),
+    path(
+        "doctor/patients/<int:patient_id>/summary/",
+        views.DoctorPatientSummaryView.as_view(),
+        name="doctor-patient-summary",
     ),
 ]

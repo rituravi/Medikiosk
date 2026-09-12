@@ -20,7 +20,9 @@ export default function LoginPage() {
       const res = await loginPatient(username, password);
       setToken(res.token);
       setRole(res.role);
-      router.push(res.role === "admin" ? "/admin" : "/dashboard");
+      const destination =
+        res.role === "admin" ? "/admin" : res.role === "doctor" ? "/doctor" : "/dashboard";
+      router.push(destination);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");
     } finally {

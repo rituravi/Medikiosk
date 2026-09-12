@@ -3,7 +3,13 @@
 import { useRouter } from "next/navigation";
 import { clearToken } from "@/lib/api";
 
-export default function AdminShell({ children }: { children: React.ReactNode }) {
+export default function AdminShell({
+  children,
+  title = "Medikiosk Admin",
+}: {
+  children: React.ReactNode;
+  title?: string;
+}) {
   const router = useRouter();
 
   function handleLogout() {
@@ -19,7 +25,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
       >
         <div className="flex items-center gap-2">
           <CrossIcon />
-          <span className="text-lg font-semibold">Medikiosk Admin</span>
+          <span className="text-lg font-semibold">{title}</span>
         </div>
         <button onClick={handleLogout} className="btn-secondary">
           Log out

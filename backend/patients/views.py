@@ -1,3 +1,4 @@
+from django.contrib.auth.hashers import check_password, make_password
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.shortcuts import get_object_or_404
@@ -10,15 +11,53 @@ from rest_framework.views import APIView
 from documents.models import MedicalDocument
 from documents.serializers import MedicalDocumentSerializer
 
-from .models import Patient
+from .models import Doctor, Patient
+from .permissions import IsDoctor
 from .serializers import (
     AdminPatientSerializer,
+    CreateDoctorSerializer,
+    DoctorPatientSerializer,
+    DoctorSerializer,
     LoginSerializer,
     PatientSerializer,
     RegisterSerializer,
 )
 from .transcribe import TranscribeError, transcribe_audio
 from .voice import VoiceParseError, parse_transcript
+
+
+def build_patient_timeline(patient, request, descending=True):
+    timeline = [
+        {
+            "date": patient.created_at.isoformat(),
+            "kind": "REGISTRATION",
+            "title": "Clinical history recorded at registration",
+            "document_type": None,
+            "file_url": None,
+            "extracted_text": None,
+            "notes": None,
+            "ocr_status": None,
+        }
+    ]
+
+    documents = MedicalDocument.objects.filter(patient=patient)
+    for doc in documents:
+        serialized = MedicalDocumentSerializer(doc, context={"request": request}).data
+        timeline.append(
+            {
+                "date": doc.uploaded_at.isoformat(),
+                "kind": "DOCUMENT",
+                "title": doc.title,
+                "document_type": doc.document_type,
+                "file_url": serialized["file_url"],
+                "extracted_text": doc.extracted_text,
+                "notes": doc.notes,
+                "ocr_status": doc.ocr_status,
+            }
+        )
+
+    timeline.sort(key=lambda entry: entry["date"], reverse=descending)
+    return timeline
 
 
 class RegisterView(APIView):
@@ -49,6 +88,11 @@ class LoginView(APIView):
         if user.is_staff:
             token, _ = Token.objects.get_or_create(user=user)
             return Response({"token": token.key, "role": "admin", "patient": None})
+
+        doctor = getattr(user, "doctor", None)
+        if doctor is not None:
+            token, _ = Token.objects.get_or_create(user=user)
+            return Response({"token": token.key, "role": "doctor", "patient": None})
 
         patient = getattr(user, "patient", None)
         if patient is None:
@@ -182,38 +226,85 @@ class SummaryView(APIView):
             )
 
         descending = request.query_params.get("order", "desc") != "asc"
+        timeline = build_patient_timeline(patient, request, descending)
 
-        timeline = [
+        return Response(
             {
-                "date": patient.created_at.isoformat(),
-                "kind": "REGISTRATION",
-                "title": "Clinical history recorded at registration",
-                "document_type": None,
-                "file_url": None,
-                "extracted_text": None,
-                "notes": None,
-                "ocr_status": None,
+                "patient": PatientSerializer(patient).data,
+                "timeline": timeline,
             }
-        ]
+        )
 
-        documents = MedicalDocument.objects.filter(patient=patient)
-        for doc in documents:
-            serialized = MedicalDocumentSerializer(doc, context={"request": request}).data
-            timeline.append(
-                {
-                    "date": doc.uploaded_at.isoformat(),
-                    "kind": "DOCUMENT",
-                    "title": doc.title,
-                    "document_type": doc.document_type,
-                    "file_url": serialized["file_url"],
-                    "extracted_text": doc.extracted_text,
-                    "notes": doc.notes,
-                    "ocr_status": doc.ocr_status,
-                }
+
+class SetOtpView(APIView):
+    """Let a patient set the access code a doctor must enter to view their summary."""
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        patient = getattr(request.user, "patient", None)
+        if patient is None:
+            return Response(
+                {"detail": "No patient profile for this user."},
+                status=status.HTTP_404_NOT_FOUND,
             )
 
-        timeline.sort(key=lambda entry: entry["date"], reverse=descending)
+        otp = str(request.data.get("otp", "")).strip()
+        if not otp.isdigit() or not (4 <= len(otp) <= 6):
+            return Response(
+                {"detail": "OTP must be 4-6 digits."}, status=status.HTTP_400_BAD_REQUEST
+            )
 
+        patient.access_otp = make_password(otp)
+        patient.save()
+        return Response({"detail": "OTP updated."})
+
+
+class AdminCreateDoctorView(APIView):
+    """Create a doctor account."""
+
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        serializer = CreateDoctorSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        doctor = serializer.save()
+        return Response(DoctorSerializer(doctor).data, status=status.HTTP_201_CREATED)
+
+    def get(self, request):
+        doctors = Doctor.objects.select_related("user").order_by("-created_at")
+        return Response(DoctorSerializer(doctors, many=True).data)
+
+
+class DoctorPatientListView(APIView):
+    """List all patients so a doctor can pick one."""
+
+    permission_classes = [IsDoctor]
+
+    def get(self, request):
+        patients = Patient.objects.order_by("full_name")
+        return Response(DoctorPatientSerializer(patients, many=True).data)
+
+
+class DoctorPatientSummaryView(APIView):
+    """Reveal a patient's summary to a doctor, gated by the patient's OTP."""
+
+    permission_classes = [IsDoctor]
+
+    def post(self, request, patient_id):
+        patient = get_object_or_404(Patient, pk=patient_id)
+
+        if not patient.access_otp:
+            return Response(
+                {"detail": "This patient has not set an access OTP."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        otp = str(request.data.get("otp", "")).strip()
+        if not check_password(otp, patient.access_otp):
+            return Response({"detail": "Invalid OTP."}, status=status.HTTP_403_FORBIDDEN)
+
+        timeline = build_patient_timeline(patient, request, descending=True)
         return Response(
             {
                 "patient": PatientSerializer(patient).data,
