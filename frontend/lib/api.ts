@@ -100,6 +100,31 @@ export function parseVoiceTranscript(transcript: string) {
   });
 }
 
+export async function transcribeAudio(audio: Blob, language: string): Promise<string> {
+  const token = getToken();
+  const formData = new FormData();
+  formData.append("audio", audio, "recording.webm");
+  formData.append("language", language);
+
+  const res = await fetch(`${API_URL}/api/patients/transcribe-voice/`, {
+    method: "POST",
+    headers: token ? { Authorization: `Token ${token}` } : undefined,
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    const message =
+      typeof body === "object" && body !== null
+        ? Object.values(body).flat().join(" ")
+        : "Transcription failed";
+    throw new Error(message || `Transcription failed with status ${res.status}`);
+  }
+
+  const data = await res.json();
+  return data.transcript;
+}
+
 export function registerPatient(payload: RegisterPayload) {
   return request<AuthResponse>("/api/patients/register/", {
     method: "POST",

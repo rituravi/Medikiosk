@@ -12,6 +12,9 @@ discharge summaries) which are digitized via OCR.
 - Poppler, for rasterizing scanned PDFs (installed here via `brew install poppler`)
 - A `GEMINI_API_KEY` in `backend/.env` — used for document OCR (handwriting-capable, via
   Gemini's vision API) and for parsing spoken registration transcripts ("Fill by voice")
+  into structured fields
+- A `SARVAM_API_KEY` in `backend/.env` — used for speech-to-text transcription of the
+  recorded audio in "Fill by voice"
 
 ## Backend (Django)
 

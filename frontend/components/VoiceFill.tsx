@@ -1,98 +1,63 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { parseVoiceTranscript, type VoiceParsedFields } from "@/lib/api";
-
-interface SpeechRecognitionResultLike {
-  isFinal: boolean;
-  0: { transcript: string };
-}
-
-interface SpeechRecognitionEventLike {
-  resultIndex: number;
-  results: ArrayLike<SpeechRecognitionResultLike>;
-}
-
-interface SpeechRecognitionLike {
-  continuous: boolean;
-  interimResults: boolean;
-  lang: string;
-  onresult: ((event: SpeechRecognitionEventLike) => void) | null;
-  onerror: ((event: { error: string }) => void) | null;
-  onend: (() => void) | null;
-  start: () => void;
-  stop: () => void;
-}
-
-type SpeechRecognitionConstructor = new () => SpeechRecognitionLike;
+import { useRef, useState } from "react";
+import { parseVoiceTranscript, transcribeAudio, type VoiceParsedFields } from "@/lib/api";
 
 const LANGUAGES = [
   { code: "en-US", label: "English" },
   { code: "hi-IN", label: "हिन्दी (Hindi)" },
 ];
 
-function getSpeechRecognitionConstructor(): SpeechRecognitionConstructor | null {
-  if (typeof window === "undefined") return null;
-  const w = window as unknown as {
-    SpeechRecognition?: SpeechRecognitionConstructor;
-    webkitSpeechRecognition?: SpeechRecognitionConstructor;
-  };
-  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
-}
-
 export default function VoiceFill({
   onParsed,
 }: {
   onParsed: (fields: VoiceParsedFields) => void;
 }) {
-  const [supported, setSupported] = useState(false);
-  const [listening, setListening] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [transcribing, setTranscribing] = useState(false);
   const [transcript, setTranscript] = useState("");
   const [parsing, setParsing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [language, setLanguage] = useState("en-US");
-  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
-  useEffect(() => {
-    setSupported(getSpeechRecognitionConstructor() !== null);
-  }, []);
-
-  function startListening() {
-    const Ctor = getSpeechRecognitionConstructor();
-    if (!Ctor) return;
-
+  async function startRecording() {
     setError(null);
-    const recognition = new Ctor();
-    recognition.continuous = true;
-    recognition.interimResults = true;
-    recognition.lang = language;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      chunksRef.current = [];
 
-    recognition.onresult = (event) => {
-      let finalText = "";
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) finalText += result[0].transcript + " ";
-      }
-      if (finalText) {
-        setTranscript((prev) => (prev + " " + finalText).trim());
-      }
-    };
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunksRef.current.push(event.data);
+      };
 
-    recognition.onerror = (event) => {
-      setError(`Speech recognition error: ${event.error}`);
-      setListening(false);
-    };
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        setTranscribing(true);
+        try {
+          const text = await transcribeAudio(blob, language);
+          setTranscript((prev) => (prev ? `${prev} ${text}` : text).trim());
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Could not transcribe audio.");
+        } finally {
+          setTranscribing(false);
+        }
+      };
 
-    recognition.onend = () => setListening(false);
-
-    recognitionRef.current = recognition;
-    recognition.start();
-    setListening(true);
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setRecording(true);
+    } catch {
+      setError("Could not access the microphone.");
+    }
   }
 
-  function stopListening() {
-    recognitionRef.current?.stop();
-    setListening(false);
+  function stopRecording() {
+    mediaRecorderRef.current?.stop();
+    setRecording(false);
   }
 
   async function handleFillForm() {
@@ -117,33 +82,26 @@ export default function VoiceFill({
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-sm font-semibold">Fill by voice</h2>
         <div className="flex items-center gap-2">
-          {supported && (
-            <select
-              className="input"
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              disabled={listening}
-            >
-              {LANGUAGES.map((l) => (
-                <option key={l.code} value={l.code}>
-                  {l.label}
-                </option>
-              ))}
-            </select>
-          )}
-          {supported ? (
-            <button
-              type="button"
-              onClick={listening ? stopListening : startListening}
-              className={listening ? "btn-secondary" : "btn-primary"}
-            >
-              {listening ? "Stop recording" : "Start speaking"}
-            </button>
-          ) : (
-            <span className="text-xs text-[var(--muted)]">
-              Voice input isn&apos;t supported in this browser.
-            </span>
-          )}
+          <select
+            className="input"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value)}
+            disabled={recording}
+          >
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={recording ? stopRecording : startRecording}
+            disabled={transcribing}
+            className={recording ? "btn-secondary" : "btn-primary"}
+          >
+            {recording ? "Stop recording" : transcribing ? "Transcribing..." : "Start speaking"}
+          </button>
         </div>
       </div>
 

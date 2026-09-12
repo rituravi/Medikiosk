@@ -9,6 +9,7 @@ from documents.serializers import MedicalDocumentSerializer
 
 from .models import Patient
 from .serializers import LoginSerializer, PatientSerializer, RegisterSerializer
+from .transcribe import TranscribeError, transcribe_audio
 from .voice import VoiceParseError, parse_transcript
 
 
@@ -79,6 +80,29 @@ class ParseVoiceView(APIView):
             )
 
         return Response(fields)
+
+
+class TranscribeVoiceView(APIView):
+    """Transcribe recorded audio into text using Sarvam's speech-to-text API."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        audio_file = request.FILES.get("audio")
+        if audio_file is None:
+            return Response(
+                {"detail": "audio file is required."}, status=status.HTTP_400_BAD_REQUEST
+            )
+        language = request.data.get("language", "en-US")
+
+        try:
+            transcript = transcribe_audio(audio_file.read(), audio_file.name, language)
+        except TranscribeError as exc:
+            return Response(
+                {"detail": str(exc)}, status=status.HTTP_502_BAD_GATEWAY
+            )
+
+        return Response({"transcript": transcript})
 
 
 class SummaryView(APIView):
