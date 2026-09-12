@@ -45,7 +45,7 @@ RESPONSE_SCHEMA = {
 }
 
 PROMPT_TEMPLATE = """You are filling out a patient registration form from a spoken \
-transcript. The transcript may be in English, Hindi, or a mix of both (Hinglish). \
+transcript. The transcript may be in English, Hindi, Kannada, or a mix of these languages. \
 Extract only what is explicitly said; leave a field as an empty string (or "UNKNOWN" \
 for blood_group) if it isn't mentioned. Do not guess or invent values. Convert any \
 spoken date of birth into YYYY-MM-DD format. Map gender to "M", "F", or "O". \

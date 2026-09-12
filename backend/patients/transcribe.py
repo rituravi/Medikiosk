@@ -8,6 +8,7 @@ SARVAM_STT_URL = "https://api.sarvam.ai/speech-to-text"
 LANGUAGE_CODE_MAP = {
     "en-US": "en-IN",
     "hi-IN": "hi-IN",
+    "kn-IN": "kn-IN",
 }
 
 

@@ -6,6 +6,7 @@ import { parseVoiceTranscript, transcribeAudio, type VoiceParsedFields } from "@
 const LANGUAGES = [
   { code: "en-US", label: "English" },
   { code: "hi-IN", label: "हिन्दी (Hindi)" },
+  { code: "kn-IN", label: "ಕನ್ನಡ (Kannada)" },
 ];
 
 export default function VoiceFill({
@@ -108,7 +109,8 @@ export default function VoiceFill({
       <p className="text-xs text-[var(--muted)]">
         Choose your language above, then speak naturally — e.g. &ldquo;My name is
         Sarah Johnson, born March 3rd 1988, allergic to peanuts...&rdquo; or
-        &ldquo;मेरा नाम राज है, जन्म 15 जनवरी 1980, मुझे शुगर की बीमारी है...&rdquo; — then
+        &ldquo;मेरा नाम राज है, जन्म 15 जनवरी 1980, मुझे शुगर की बीमारी है...&rdquo; or
+        &ldquo;ನನ್ನ ಹೆಸರು ರಾಜ್, ಜನನ 15 ಜನವರಿ 1980, ನನಗೆ ಶುಗರ್ ಕಾಯಿಲೆ ಇದೆ...&rdquo; — then
         review and fill the form below. You can also type or edit the transcript directly.
       </p>
 
