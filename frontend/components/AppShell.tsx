@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import AiDisclaimer from "@/components/AiDisclaimer";
+import EmergencyBanner from "@/components/EmergencyBanner";
 import { clearToken } from "@/lib/api";
 
 const NAV_ITEMS = [
@@ -79,6 +80,7 @@ export default function AppShell({
       </aside>
 
       <main className="flex-1 overflow-y-auto">
+        <EmergencyBanner />
         {children}
         <AiDisclaimer />
       </main>

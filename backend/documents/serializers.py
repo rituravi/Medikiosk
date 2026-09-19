@@ -18,6 +18,8 @@ class MedicalDocumentSerializer(serializers.ModelSerializer):
             "extracted_text",
             "ocr_status",
             "ocr_error",
+            "is_emergency_flagged",
+            "emergency_reasoning",
             "uploaded_at",
         ]
         read_only_fields = [
@@ -26,6 +28,8 @@ class MedicalDocumentSerializer(serializers.ModelSerializer):
             "extracted_text",
             "ocr_status",
             "ocr_error",
+            "is_emergency_flagged",
+            "emergency_reasoning",
             "uploaded_at",
         ]
         extra_kwargs = {"file": {"write_only": True}}

@@ -36,6 +36,15 @@ class MedicalDocument(models.Model):
     )
     ocr_error = models.TextField(blank=True)
 
+    # Set if the extracted text was screened and appears to describe a current
+    # emergency; a linked triage.CheckIn is created so it surfaces in the live
+    # queue exactly like a patient-reported check-in would.
+    is_emergency_flagged = models.BooleanField(default=False)
+    emergency_reasoning = models.TextField(blank=True)
+    triage_check_in = models.ForeignKey(
+        "triage.CheckIn", on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

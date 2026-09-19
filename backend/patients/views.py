@@ -54,7 +54,11 @@ def build_patient_timeline(patient, request, descending=True):
                 "document_type": doc.document_type,
                 "file_url": serialized["file_url"],
                 "extracted_text": doc.extracted_text,
-                "notes": doc.notes,
+                "notes": (
+                    f"[FLAGGED URGENT: {doc.emergency_reasoning}] {doc.notes}".strip()
+                    if doc.is_emergency_flagged
+                    else doc.notes
+                ),
                 "ocr_status": doc.ocr_status,
             }
         )

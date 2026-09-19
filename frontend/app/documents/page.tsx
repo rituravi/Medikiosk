@@ -28,6 +28,7 @@ export default function DocumentsPage() {
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [flaggedUpload, setFlaggedUpload] = useState<MedicalDocument | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   function loadDocuments() {
@@ -53,9 +54,11 @@ export default function DocumentsPage() {
       return;
     }
     setError(null);
+    setFlaggedUpload(null);
     setUploading(true);
     try {
-      await uploadDocument({ document_type: documentType, title, notes, file });
+      const uploaded = await uploadDocument({ document_type: documentType, title, notes, file });
+      if (uploaded.is_emergency_flagged) setFlaggedUpload(uploaded);
       setTitle("");
       setNotes("");
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -79,6 +82,21 @@ export default function DocumentsPage() {
         <p className="text-sm text-[var(--muted)]">Records</p>
         <h1 className="text-2xl font-semibold">Medical Documents</h1>
       </header>
+
+      {flaggedUpload && (
+        <div
+          className="card p-4 text-sm"
+          style={{ background: "#fee2e2", border: "1px solid #fca5a5", color: "#7f1d1d" }}
+        >
+          <p className="font-semibold">
+            &quot;{flaggedUpload.title}&quot; has been flagged as urgent.
+          </p>
+          <p className="mt-1">
+            Please inform a staff member immediately — you do not need to wait in the
+            routine queue.
+          </p>
+        </div>
+      )}
 
       <form
         onSubmit={handleUpload}
@@ -175,6 +193,14 @@ function DocumentCard({
           <span className="badge" style={{ background: "var(--background)", color: "var(--primary)" }}>
             {DOCUMENT_TYPE_LABELS[doc.document_type]}
           </span>
+          {doc.is_emergency_flagged && (
+            <span
+              className="badge ml-2"
+              style={{ background: "#fee2e2", color: "#7f1d1d", border: "1px solid #fca5a5" }}
+            >
+              Flagged Urgent
+            </span>
+          )}
           <p className="mt-1 font-medium">{doc.title}</p>
           <p className="text-xs text-[var(--muted)]">
             {new Date(doc.uploaded_at).toLocaleString()}

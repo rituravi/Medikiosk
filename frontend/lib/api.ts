@@ -202,6 +202,8 @@ export interface MedicalDocument {
   extracted_text: string;
   ocr_status: "PENDING" | "PROCESSING" | "DONE" | "FAILED";
   ocr_error: string;
+  is_emergency_flagged: boolean;
+  emergency_reasoning: string;
   uploaded_at: string;
 }
 
