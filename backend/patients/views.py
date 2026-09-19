@@ -139,6 +139,11 @@ class LoginView(APIView):
             token, _ = Token.objects.get_or_create(user=user)
             return Response({"token": token.key, "role": "doctor", "patient": None})
 
+        triage_staff = getattr(user, "triage_staff", None)
+        if triage_staff is not None:
+            token, _ = Token.objects.get_or_create(user=user)
+            return Response({"token": token.key, "role": "triage", "patient": None})
+
         patient = getattr(user, "patient", None)
         if patient is None:
             return Response(

@@ -18,7 +18,7 @@ export interface Patient {
   otp_is_set: boolean;
 }
 
-export type Role = "admin" | "doctor" | "patient";
+export type Role = "admin" | "doctor" | "triage" | "patient";
 
 export interface AuthResponse {
   token: string;
@@ -489,4 +489,79 @@ export function doctorFinalizeAyurvedaAssessment(
     `/api/ayurveda/doctor/patients/${patientId}/assessments/finalize/`,
     { method: "POST", body: JSON.stringify({ otp, ...payload }) },
   );
+}
+
+// --- Triage: AI symptom screening + priority queue ---
+
+export interface CheckIn {
+  id: number;
+  symptoms_text: string;
+  status: "WAITING" | "PRIORITY" | "IN_CONSULT" | "COMPLETED";
+  is_emergency: boolean;
+  red_flags: string;
+  created_at: string;
+}
+
+export function submitCheckIn(symptoms_text: string) {
+  return request<CheckIn>("/api/triage/check-in/", {
+    method: "POST",
+    body: JSON.stringify({ symptoms_text }),
+  });
+}
+
+export function fetchMyCheckIns() {
+  return request<CheckIn[]>("/api/triage/check-in/mine/");
+}
+
+export interface QueueCheckIn {
+  id: number;
+  patient_name: string;
+  patient_phone: string;
+  symptoms_text: string;
+  status: "WAITING" | "PRIORITY" | "IN_CONSULT" | "COMPLETED";
+  is_emergency: boolean;
+  red_flags: string;
+  ai_reasoning: string;
+  acknowledged_by_name?: string;
+  acknowledged_at: string | null;
+  resolved_at: string | null;
+  created_at: string;
+}
+
+export function fetchTriageQueue() {
+  return request<QueueCheckIn[]>("/api/triage/queue/");
+}
+
+export function acknowledgeCheckIn(checkInId: number) {
+  return request<QueueCheckIn>(`/api/triage/queue/${checkInId}/acknowledge/`, {
+    method: "POST",
+  });
+}
+
+export function completeCheckIn(checkInId: number) {
+  return request<QueueCheckIn>(`/api/triage/queue/${checkInId}/complete/`, {
+    method: "POST",
+  });
+}
+
+export interface TriageStaffMember {
+  id: number;
+  username: string;
+  full_name: string;
+  created_at: string;
+}
+
+export function adminFetchTriageStaff() {
+  return request<TriageStaffMember[]>("/api/triage/admin/staff/");
+}
+
+export function adminCreateTriageStaff(payload: {
+  username: string;
+  password: string;
+  full_name: string;
+}) {
+  return request<TriageStaffMember>("/api/triage/admin/staff/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }

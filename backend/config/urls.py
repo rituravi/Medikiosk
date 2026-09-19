@@ -11,6 +11,7 @@ urlpatterns = [
     path("api/patients/", include("patients.urls")),
     path("api/documents/", include("documents.urls")),
     path("api/ayurveda/", include("ayurveda.urls")),
+    path("api/triage/", include("triage.urls")),
 ]
 
 if settings.DEBUG:

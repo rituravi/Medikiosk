@@ -21,7 +21,13 @@ export default function LoginPage() {
       setToken(res.token);
       setRole(res.role);
       const destination =
-        res.role === "admin" ? "/admin" : res.role === "doctor" ? "/doctor" : "/dashboard";
+        res.role === "admin"
+          ? "/admin"
+          : res.role === "doctor"
+            ? "/doctor"
+            : res.role === "triage"
+              ? "/triage"
+              : "/dashboard";
       router.push(destination);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Login failed");

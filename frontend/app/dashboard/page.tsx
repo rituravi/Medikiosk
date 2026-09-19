@@ -91,7 +91,10 @@ export default function DashboardPage() {
 
         <Card title="Quick Actions" noDivide>
           <div className="flex flex-wrap gap-3 p-4">
-            <Link href="/documents" className="btn-primary">
+            <Link href="/check-in" className="btn-primary">
+              Check In for Today&apos;s Visit
+            </Link>
+            <Link href="/documents" className="btn-secondary">
               Upload a document
             </Link>
             <Link href="/summary" className="btn-secondary">

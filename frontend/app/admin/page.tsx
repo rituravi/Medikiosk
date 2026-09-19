@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminDoctorsSection from "@/components/AdminDoctorsSection";
+import AdminTriageStaffSection from "@/components/AdminTriageStaffSection";
 import AdminShell from "@/components/AdminShell";
 import {
   adminFetchUsers,
@@ -204,6 +205,7 @@ export default function AdminPage() {
         </section>
 
         <AdminDoctorsSection />
+        <AdminTriageStaffSection />
       </div>
     </AdminShell>
   );
