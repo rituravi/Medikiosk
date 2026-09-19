@@ -3,10 +3,12 @@
 import { Fragment, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import AdminShell from "@/components/AdminShell";
+import DoctorAyurvedaPanel from "@/components/DoctorAyurvedaPanel";
 import PatientSummaryDetails from "@/components/PatientSummaryDetails";
 import {
   doctorFetchPatientSummary,
   doctorFetchPatients,
+  doctorFetchPrakriti,
   type DoctorPatient,
   type PatientSummary,
 } from "@/lib/api";
@@ -18,11 +20,16 @@ export default function DoctorPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [otpTargetId, setOtpTargetId] = useState<number | null>(null);
+  const [otpAction, setOtpAction] = useState<"summary" | "ayurveda">("summary");
   const [otp, setOtp] = useState("");
   const [otpError, setOtpError] = useState<string | null>(null);
   const [verifying, setVerifying] = useState(false);
 
   const [summary, setSummary] = useState<PatientSummary | null>(null);
+  const [ayurvedaSession, setAyurvedaSession] = useState<{
+    patient: DoctorPatient;
+    otp: string;
+  } | null>(null);
 
   useEffect(() => {
     doctorFetchPatients()
@@ -31,8 +38,9 @@ export default function DoctorPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  function openOtpPrompt(patientId: number) {
+  function openOtpPrompt(patientId: number, action: "summary" | "ayurveda") {
     setOtpTargetId(patientId);
+    setOtpAction(action);
     setOtp("");
     setOtpError(null);
     setSummary(null);
@@ -44,12 +52,17 @@ export default function DoctorPage() {
     setOtpError(null);
   }
 
-  async function submitOtp(patientId: number) {
+  async function submitOtp(patient: DoctorPatient) {
     setOtpError(null);
     setVerifying(true);
     try {
-      const data = await doctorFetchPatientSummary(patientId, otp);
-      setSummary(data);
+      if (otpAction === "summary") {
+        const data = await doctorFetchPatientSummary(patient.id, otp);
+        setSummary(data);
+      } else {
+        await doctorFetchPrakriti(patient.id, otp);
+        setAyurvedaSession({ patient, otp });
+      }
       setOtpTargetId(null);
     } catch (err) {
       setOtpError(err instanceof Error ? err.message : "Could not verify OTP.");
@@ -85,6 +98,18 @@ export default function DoctorPage() {
           </div>
           <PatientSummaryDetails data={summary} />
         </div>
+      </AdminShell>
+    );
+  }
+
+  if (ayurvedaSession) {
+    return (
+      <AdminShell title="Medikiosk Doctor">
+        <DoctorAyurvedaPanel
+          patient={ayurvedaSession.patient}
+          otp={ayurvedaSession.otp}
+          onBack={() => setAyurvedaSession(null)}
+        />
       </AdminShell>
     );
   }
@@ -131,12 +156,20 @@ export default function DoctorPage() {
                       <td className="px-4 py-3">{genderLabel(patient.gender)}</td>
                       <td className="px-4 py-3">{patient.phone_number || "—"}</td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => openOtpPrompt(patient.id)}
-                          className="btn-secondary text-xs"
-                        >
-                          View Summary
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => openOtpPrompt(patient.id, "summary")}
+                            className="btn-secondary text-xs"
+                          >
+                            View Summary
+                          </button>
+                          <button
+                            onClick={() => openOtpPrompt(patient.id, "ayurveda")}
+                            className="btn-secondary text-xs"
+                          >
+                            Ayurveda Consult
+                          </button>
+                        </div>
                       </td>
                     </tr>
                     {otpTargetId === patient.id && (
@@ -155,7 +188,7 @@ export default function DoctorPage() {
                               onChange={(e) => setOtp(e.target.value)}
                             />
                             <button
-                              onClick={() => submitOtp(patient.id)}
+                              onClick={() => submitOtp(patient)}
                               disabled={verifying || !otp}
                               className="btn-primary text-xs"
                             >

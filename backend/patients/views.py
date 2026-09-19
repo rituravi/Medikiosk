@@ -8,6 +8,8 @@ from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from ayurveda.models import AyurvedaAssessment, PrakritiProfile
+from ayurveda.serializers import PrakritiProfileSerializer
 from documents.models import MedicalDocument
 from documents.serializers import MedicalDocumentSerializer
 
@@ -57,8 +59,50 @@ def build_patient_timeline(patient, request, descending=True):
             }
         )
 
+    assessments = AyurvedaAssessment.objects.filter(patient=patient, status="FINALIZED")
+    for assessment in assessments:
+        timeline.append(
+            {
+                "date": assessment.finalized_at.isoformat(),
+                "kind": "AYURVEDA_ASSESSMENT",
+                "title": "Ayurvedic OPD Assessment (Dashavidha Pariksha)",
+                "document_type": None,
+                "file_url": None,
+                "extracted_text": None,
+                "notes": _summarize_ayurveda_assessment(assessment),
+                "ocr_status": None,
+            }
+        )
+
     timeline.sort(key=lambda entry: entry["date"], reverse=descending)
     return timeline
+
+
+def _summarize_ayurveda_assessment(assessment):
+    parts = [f"Vaya: {assessment.vaya()}"]
+    for label, value in [
+        ("Vikriti", assessment.get_vikriti_type_display() if assessment.vikriti_type else None),
+        ("Sara", assessment.get_sara_grade_display() if assessment.sara_grade else None),
+        (
+            "Samhanana",
+            assessment.get_samhanana_grade_display() if assessment.samhanana_grade else None,
+        ),
+        ("Satmya", assessment.get_satmya_grade_display() if assessment.satmya_grade else None),
+        ("Sattva", assessment.get_sattva_grade_display() if assessment.sattva_grade else None),
+        (
+            "Agni",
+            assessment.get_agni_type_display() if assessment.agni_type else None,
+        ),
+        (
+            "Vyayama Shakti",
+            assessment.get_vyayama_shakti_grade_display()
+            if assessment.vyayama_shakti_grade
+            else None,
+        ),
+    ]:
+        if value:
+            parts.append(f"{label}: {value}")
+    return " | ".join(parts)
 
 
 class RegisterView(APIView):
@@ -270,10 +314,12 @@ class SummaryView(APIView):
 
         descending = request.query_params.get("order", "desc") != "asc"
         timeline = build_patient_timeline(patient, request, descending)
+        prakriti, _ = PrakritiProfile.objects.get_or_create(patient=patient)
 
         return Response(
             {
                 "patient": PatientSerializer(patient).data,
+                "prakriti": PrakritiProfileSerializer(prakriti).data,
                 "timeline": timeline,
             }
         )
@@ -350,9 +396,11 @@ class DoctorPatientSummaryView(APIView):
         AccessLog.objects.create(doctor=request.user.doctor, patient=patient)
 
         timeline = build_patient_timeline(patient, request, descending=True)
+        prakriti, _ = PrakritiProfile.objects.get_or_create(patient=patient)
         return Response(
             {
                 "patient": PatientSerializer(patient).data,
+                "prakriti": PrakritiProfileSerializer(prakriti).data,
                 "timeline": timeline,
             }
         )

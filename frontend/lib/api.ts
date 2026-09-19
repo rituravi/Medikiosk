@@ -246,7 +246,7 @@ export function deleteDocument(id: number) {
 
 export interface TimelineEntry {
   date: string;
-  kind: "REGISTRATION" | "DOCUMENT";
+  kind: "REGISTRATION" | "DOCUMENT" | "AYURVEDA_ASSESSMENT";
   title: string;
   document_type: DocumentType | null;
   file_url: string | null;
@@ -257,6 +257,7 @@ export interface TimelineEntry {
 
 export interface PatientSummary {
   patient: Patient;
+  prakriti?: PrakritiProfile;
   timeline: TimelineEntry[];
 }
 
@@ -334,4 +335,158 @@ export function doctorFetchPatientSummary(patientId: number, otp: string) {
     method: "POST",
     body: JSON.stringify({ otp }),
   });
+}
+
+// --- Ayurveda: Dashavidha Pariksha + Ahara-Vihara assessment ---
+
+export type SingleDosha = "VATA" | "PITTA" | "KAPHA" | "";
+export type DoshaType =
+  | "VATA"
+  | "PITTA"
+  | "KAPHA"
+  | "VATA_PITTA"
+  | "PITTA_KAPHA"
+  | "VATA_KAPHA"
+  | "TRIDOSHA"
+  | "";
+export type Grade = "PRAVARA" | "MADHYAMA" | "AVARA" | "";
+export type AgniType = "SAMA" | "VISHAMA" | "TIKSHNA" | "MANDA" | "";
+
+export interface PrakritiProfile {
+  id: number;
+  body_frame: SingleDosha;
+  skin_type: SingleDosha;
+  hair_type: SingleDosha;
+  appetite_pattern: SingleDosha;
+  sleep_pattern: SingleDosha;
+  mental_temperament: SingleDosha;
+  self_report_notes: string;
+  self_report_updated_at: string | null;
+  prakriti_type: DoshaType;
+  clinical_notes: string;
+  finalized_by_name?: string;
+  finalized_at: string | null;
+  is_finalized: boolean;
+}
+
+export type PrakritiSelfReport = Pick<
+  PrakritiProfile,
+  | "body_frame"
+  | "skin_type"
+  | "hair_type"
+  | "appetite_pattern"
+  | "sleep_pattern"
+  | "mental_temperament"
+  | "self_report_notes"
+>;
+
+export function fetchPrakriti() {
+  return request<PrakritiProfile>("/api/ayurveda/me/prakriti/");
+}
+
+export function updatePrakritiSelfReport(payload: Partial<PrakritiSelfReport>) {
+  return request<PrakritiProfile>("/api/ayurveda/me/prakriti/", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export interface AharaVihara {
+  diet_type: "VEGETARIAN" | "EGGETARIAN" | "NON_VEGETARIAN" | "VEGAN" | "";
+  meal_pattern: "REGULAR" | "IRREGULAR" | "FREQUENT_SNACKING" | "";
+  water_intake: "LOW" | "ADEQUATE" | "EXCESSIVE" | "";
+  taste_preferences: string;
+  sleep_duration_hours: number | null;
+  sleep_quality: "SOUND" | "DISTURBED" | "INSOMNIA" | "";
+  bowel_habits: "REGULAR" | "IRREGULAR" | "CONSTIPATED" | "LOOSE" | "";
+  physical_activity_level: "SEDENTARY" | "MODERATE" | "ACTIVE" | "VERY_ACTIVE" | "";
+  addictions: string;
+  occupation_stress_level: "LOW" | "MODERATE" | "HIGH" | "";
+  ahara_vihara_notes: string;
+}
+
+export interface AyurvedaAssessmentClinical {
+  vikriti_type: DoshaType;
+  vikriti_notes: string;
+  sara_grade: Grade;
+  sara_notes: string;
+  samhanana_grade: Grade;
+  samhanana_notes: string;
+  height_cm: number | null;
+  weight_kg: number | null;
+  pramana_assessment: "ADEQUATE" | "INADEQUATE" | "";
+  pramana_notes: string;
+  satmya_grade: Grade;
+  satmya_notes: string;
+  sattva_grade: Grade;
+  sattva_notes: string;
+  abhyavaharana_shakti: Grade;
+  agni_type: AgniType;
+  ahara_shakti_notes: string;
+  vyayama_shakti_grade: Grade;
+  vyayama_shakti_notes: string;
+}
+
+export interface AyurvedaAssessment extends AharaVihara, AyurvedaAssessmentClinical {
+  id: number;
+  patient: number;
+  status: "DRAFT" | "FINALIZED";
+  created_at: string;
+  updated_at: string;
+  finalized_at: string | null;
+  vaya: "BALA" | "MADHYA" | "VRIDDHA";
+}
+
+export function fetchMyAyurvedaAssessments() {
+  return request<AyurvedaAssessment[]>("/api/ayurveda/me/assessments/");
+}
+
+export function createMyAyurvedaAssessment(payload: Partial<AharaVihara>) {
+  return request<AyurvedaAssessment>("/api/ayurveda/me/assessments/", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateMyAyurvedaAssessment(id: number, payload: Partial<AharaVihara>) {
+  return request<AyurvedaAssessment>(`/api/ayurveda/me/assessments/${id}/`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function doctorFetchPrakriti(patientId: number, otp: string) {
+  return request<PrakritiProfile>(`/api/ayurveda/doctor/patients/${patientId}/prakriti/`, {
+    method: "POST",
+    body: JSON.stringify({ otp }),
+  });
+}
+
+export function doctorFinalizePrakriti(
+  patientId: number,
+  otp: string,
+  payload: { prakriti_type: DoshaType; clinical_notes: string },
+) {
+  return request<PrakritiProfile>(`/api/ayurveda/doctor/patients/${patientId}/prakriti/`, {
+    method: "POST",
+    body: JSON.stringify({ otp, ...payload }),
+  });
+}
+
+export function doctorFetchAyurvedaAssessments(patientId: number, otp: string) {
+  return request<AyurvedaAssessment[]>(
+    `/api/ayurveda/doctor/patients/${patientId}/assessments/`,
+    { method: "POST", body: JSON.stringify({ otp }) },
+  );
+}
+
+export function doctorFinalizeAyurvedaAssessment(
+  patientId: number,
+  otp: string,
+  payload: Partial<AyurvedaAssessmentClinical> & { assessment_id?: number },
+) {
+  return request<AyurvedaAssessment>(
+    `/api/ayurveda/doctor/patients/${patientId}/assessments/finalize/`,
+    { method: "POST", body: JSON.stringify({ otp, ...payload }) },
+  );
 }

@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "hello",
     "patients",
     "documents",
+    "ayurveda",
 ]
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

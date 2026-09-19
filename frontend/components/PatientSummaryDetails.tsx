@@ -7,8 +7,15 @@ const DOCUMENT_TYPE_LABELS: Record<string, string> = {
   OTHER: "Other",
 };
 
+function doshaLabel(value: string) {
+  return value
+    .split("_")
+    .map((w) => w.charAt(0) + w.slice(1).toLowerCase())
+    .join("-");
+}
+
 export default function PatientSummaryDetails({ data }: { data: PatientSummary }) {
-  const { patient, timeline } = data;
+  const { patient, timeline, prakriti } = data;
 
   return (
     <>
@@ -18,6 +25,16 @@ export default function PatientSummaryDetails({ data }: { data: PatientSummary }
           Generated on {new Date().toLocaleString()}
         </p>
       </header>
+
+      {prakriti && prakriti.is_finalized && (
+        <section className="card p-4 text-sm">
+          <h2 className="mb-2 text-sm font-semibold">Prakriti (Constitution)</h2>
+          <p className="font-medium">{doshaLabel(prakriti.prakriti_type)}</p>
+          {prakriti.clinical_notes && (
+            <p className="mt-1 text-[var(--muted)]">{prakriti.clinical_notes}</p>
+          )}
+        </section>
+      )}
 
       <section className="card grid grid-cols-2 gap-x-8 gap-y-1 p-4 text-sm">
         <SummaryField label="Name" value={patient.full_name} />
@@ -61,6 +78,11 @@ export default function PatientSummaryDetails({ data }: { data: PatientSummary }
                 </p>
                 {entry.kind === "REGISTRATION" ? (
                   <p className="font-medium">{entry.title}</p>
+                ) : entry.kind === "AYURVEDA_ASSESSMENT" ? (
+                  <>
+                    <p className="font-medium">{entry.title}</p>
+                    {entry.notes && <p className="text-[var(--muted)]">{entry.notes}</p>}
+                  </>
                 ) : (
                   <>
                     <p className="font-medium">

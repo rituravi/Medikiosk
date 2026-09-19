@@ -100,6 +100,9 @@ export default function DashboardPage() {
             <Link href="/profile" className="btn-secondary">
               Edit Profile
             </Link>
+            <Link href="/ayurveda" className="btn-secondary">
+              Ayurvedic OPD Assessment
+            </Link>
           </div>
         </Card>
 
