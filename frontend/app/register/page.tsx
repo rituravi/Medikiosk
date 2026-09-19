@@ -21,7 +21,24 @@ const initialForm = {
   current_medications: "",
   past_surgeries: "",
   family_history: "",
+  consent: false,
+  guardian_consent: false,
 };
+
+const MINOR_AGE_CUTOFF = 18;
+
+function isMinor(dateOfBirth: string): boolean {
+  if (!dateOfBirth) return false;
+  const dob = new Date(dateOfBirth);
+  if (Number.isNaN(dob.getTime())) return false;
+  const today = new Date();
+  let age = today.getFullYear() - dob.getFullYear();
+  const monthDiff = today.getMonth() - dob.getMonth();
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+    age -= 1;
+  }
+  return age < MINOR_AGE_CUTOFF;
+}
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -53,9 +70,21 @@ export default function RegisterPage() {
     }));
   }
 
+  const minor = isMinor(form.date_of_birth);
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!form.consent) {
+      setError("You must agree to the Privacy Policy to register.");
+      return;
+    }
+    if (minor && !form.guardian_consent) {
+      setError("A parent or guardian must also consent since this patient is a minor.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await registerPatient(form);
@@ -234,6 +263,50 @@ export default function RegisterPage() {
               onChange={(e) => update("family_history", e.target.value)}
             />
           </Field>
+        </fieldset>
+
+        <fieldset className="flex flex-col gap-3">
+          <legend className="mb-2 text-sm font-semibold uppercase tracking-wide text-[var(--muted)]">
+            Consent
+          </legend>
+          <label className="flex items-start gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="mt-1"
+              checked={form.consent}
+              onChange={(e) => update("consent", e.target.checked)}
+            />
+            <span>
+              I have read and agree to the{" "}
+              <Link
+                href="/privacy-policy"
+                target="_blank"
+                className="underline"
+                style={{ color: "var(--primary)" }}
+              >
+                Privacy Policy
+              </Link>
+              , and I consent to Medikiosk collecting and processing this personal and
+              clinical data, including sending uploaded documents and voice recordings to
+              third-party AI providers for text extraction.
+            </span>
+          </label>
+
+          {minor && (
+            <label className="flex items-start gap-2 text-sm">
+              <input
+                type="checkbox"
+                className="mt-1"
+                checked={form.guardian_consent}
+                onChange={(e) => update("guardian_consent", e.target.checked)}
+              />
+              <span>
+                This patient is under 18. I am their parent or legal guardian and I
+                consent to this registration on their behalf, as required under the
+                Digital Personal Data Protection Act, 2023.
+              </span>
+            </label>
+          )}
         </fieldset>
 
         {error && <p className="text-sm text-[var(--danger)]">{error}</p>}

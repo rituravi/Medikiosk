@@ -91,6 +91,8 @@ export interface RegisterPayload {
   current_medications?: string;
   past_surgeries?: string;
   family_history?: string;
+  consent: boolean;
+  guardian_consent?: boolean;
 }
 
 export interface VoiceParsedFields {
@@ -157,11 +159,32 @@ export function fetchMe() {
   return request<Patient>("/api/patients/me/");
 }
 
+export function updatePatient(payload: Partial<RegisterPayload>) {
+  return request<Patient>("/api/patients/me/", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deletePatientAccount() {
+  return request<void>("/api/patients/me/", { method: "DELETE" });
+}
+
 export function setPatientOtp(otp: string) {
   return request<{ detail: string }>("/api/patients/me/otp/", {
     method: "POST",
     body: JSON.stringify({ otp }),
   });
+}
+
+export interface AccessLogEntry {
+  id: number;
+  doctor_name: string;
+  accessed_at: string;
+}
+
+export function fetchAccessLog() {
+  return request<AccessLogEntry[]>("/api/patients/me/access-log/");
 }
 
 export type DocumentType =

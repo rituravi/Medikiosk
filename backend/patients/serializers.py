@@ -1,8 +1,19 @@
 from django.contrib.auth import authenticate
 from django.contrib.auth.models import User
+from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Doctor, Patient
+from .models import AccessLog, Doctor, Patient
+
+MINOR_AGE_CUTOFF = 18
+
+
+def _age_on(date_of_birth, today):
+    return (
+        today.year
+        - date_of_birth.year
+        - ((today.month, today.day) < (date_of_birth.month, date_of_birth.day))
+    )
 
 
 class PatientSerializer(serializers.ModelSerializer):
@@ -53,10 +64,39 @@ class RegisterSerializer(serializers.Serializer):
     past_surgeries = serializers.CharField(required=False, allow_blank=True)
     family_history = serializers.CharField(required=False, allow_blank=True)
 
+    # DPDPA: explicit, unticked-by-default consent to collect and process this
+    # data (including sending prescription images/voice recordings to the
+    # third-party OCR/speech providers named in the privacy policy).
+    consent = serializers.BooleanField(write_only=True)
+    # Required in addition to `consent` when the patient is a minor, since a
+    # minor cannot themselves give valid consent under DPDPA.
+    guardian_consent = serializers.BooleanField(required=False, default=False)
+
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
             raise serializers.ValidationError("Username is already taken.")
         return value
+
+    def validate_consent(self, value):
+        if not value:
+            raise serializers.ValidationError(
+                "You must consent to the collection and processing of this data."
+            )
+        return value
+
+    def validate(self, attrs):
+        dob = attrs.get("date_of_birth")
+        if dob and _age_on(dob, timezone.now().date()) < MINOR_AGE_CUTOFF:
+            if not attrs.get("guardian_consent"):
+                raise serializers.ValidationError(
+                    {
+                        "guardian_consent": (
+                            "This patient is a minor; a parent or guardian must "
+                            "additionally provide consent."
+                        )
+                    }
+                )
+        return attrs
 
     def create(self, validated_data):
         user = User.objects.create_user(
@@ -77,6 +117,8 @@ class RegisterSerializer(serializers.Serializer):
             current_medications=validated_data.get("current_medications", ""),
             past_surgeries=validated_data.get("past_surgeries", ""),
             family_history=validated_data.get("family_history", ""),
+            consent_given_at=timezone.now(),
+            guardian_consent=validated_data.get("guardian_consent", False),
         )
         return patient
 
@@ -137,6 +179,14 @@ class DoctorPatientSerializer(serializers.ModelSerializer):
     class Meta:
         model = Patient
         fields = ["id", "full_name", "date_of_birth", "gender", "phone_number"]
+
+
+class AccessLogSerializer(serializers.ModelSerializer):
+    doctor_name = serializers.CharField(source="doctor.full_name", read_only=True)
+
+    class Meta:
+        model = AccessLog
+        fields = ["id", "doctor_name", "accessed_at"]
 
 
 class LoginSerializer(serializers.Serializer):

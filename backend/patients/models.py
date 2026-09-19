@@ -44,6 +44,12 @@ class Patient(models.Model):
     # (in plaintext, checked against this hash) to view this patient's summary.
     access_otp = models.CharField(max_length=128, blank=True)
 
+    # DPDPA consent trail: when the data principal (or their guardian, for a
+    # minor) consented to registration, and whether that consent came from a
+    # guardian on the patient's behalf.
+    consent_given_at = models.DateTimeField(null=True, blank=True)
+    guardian_consent = models.BooleanField(default=False)
+
     def __str__(self):
         return self.full_name
 
@@ -60,3 +66,17 @@ class Doctor(models.Model):
 
     def __str__(self):
         return self.full_name
+
+
+class AccessLog(models.Model):
+    """Audit trail: records every time a doctor views a patient's summary."""
+
+    doctor = models.ForeignKey(Doctor, on_delete=models.CASCADE, related_name="access_logs")
+    patient = models.ForeignKey(Patient, on_delete=models.CASCADE, related_name="access_logs")
+    accessed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-accessed_at"]
+
+    def __str__(self):
+        return f"{self.doctor.full_name} viewed {self.patient.full_name} at {self.accessed_at}"

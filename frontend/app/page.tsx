@@ -56,6 +56,11 @@ export default function Home() {
         />
       </section>
 
+      <p className="pb-2 text-center text-xs">
+        <Link href="/privacy-policy" className="underline" style={{ color: "var(--muted)" }}>
+          Privacy Policy
+        </Link>
+      </p>
       <AiDisclaimer />
     </div>
   );

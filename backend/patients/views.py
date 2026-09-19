@@ -11,9 +11,10 @@ from rest_framework.views import APIView
 from documents.models import MedicalDocument
 from documents.serializers import MedicalDocumentSerializer
 
-from .models import Doctor, Patient
+from .models import AccessLog, Doctor, Patient
 from .permissions import IsDoctor
 from .serializers import (
+    AccessLogSerializer,
     AdminPatientSerializer,
     CreateDoctorSerializer,
     DoctorPatientSerializer,
@@ -121,6 +122,48 @@ class MeView(APIView):
                 status=status.HTTP_404_NOT_FOUND,
             )
         return Response(PatientSerializer(patient).data)
+
+    def patch(self, request):
+        """DPDPA right to correction: let a patient update their own profile."""
+        patient = getattr(request.user, "patient", None)
+        if patient is None:
+            return Response(
+                {"detail": "No patient profile for this user."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        serializer = PatientSerializer(patient, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data)
+
+    def delete(self, request):
+        """DPDPA right to erasure: let a patient delete their own account."""
+        patient = getattr(request.user, "patient", None)
+        if patient is None:
+            return Response(
+                {"detail": "No patient profile for this user."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        for doc in MedicalDocument.objects.filter(patient=patient):
+            doc.file.delete(save=False)
+        request.user.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class AccessLogView(APIView):
+    """DPDPA transparency: let a patient see who has viewed their summary."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        patient = getattr(request.user, "patient", None)
+        if patient is None:
+            return Response(
+                {"detail": "No patient profile for this user."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        logs = AccessLog.objects.filter(patient=patient).select_related("doctor")
+        return Response(AccessLogSerializer(logs, many=True).data)
 
 
 class ParseVoiceView(APIView):
@@ -303,6 +346,8 @@ class DoctorPatientSummaryView(APIView):
         otp = str(request.data.get("otp", "")).strip()
         if not check_password(otp, patient.access_otp):
             return Response({"detail": "Invalid OTP."}, status=status.HTTP_403_FORBIDDEN)
+
+        AccessLog.objects.create(doctor=request.user.doctor, patient=patient)
 
         timeline = build_patient_timeline(patient, request, descending=True)
         return Response(

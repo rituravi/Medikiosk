@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import AppShell from "@/components/AppShell";
+import DeleteAccountCard from "@/components/DeleteAccountCard";
+import PatientAccessLogCard from "@/components/PatientAccessLogCard";
 import PatientOtpCard from "@/components/PatientOtpCard";
 import { fetchDocuments, fetchMe, type MedicalDocument, type Patient } from "@/lib/api";
 
@@ -95,10 +97,15 @@ export default function DashboardPage() {
             <Link href="/summary" className="btn-secondary">
               View summary for doctor
             </Link>
+            <Link href="/profile" className="btn-secondary">
+              Edit Profile
+            </Link>
           </div>
         </Card>
 
         <PatientOtpCard otpIsSet={patient.otp_is_set} onUpdated={loadPatient} />
+        <PatientAccessLogCard />
+        <DeleteAccountCard />
       </div>
     </AppShell>
   );
